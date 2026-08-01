@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASK</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;border-radius:0!important}
+:root{--void:#080706;--panel:#100D09;--rule:#241C12;--ph:#FFB000;--dim:#8A5F00;--ghost:#4A3A22;--cut:#FF2D1F;--fill:#E8DCC8}
+html,body{background:var(--void)}
+body{color:var(--ph);font-family:"Berkeley Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+ font-variant-numeric:tabular-nums;font-size:13px;line-height:26px;max-width:780px;margin:0 auto;
+ border-left:1px solid var(--rule);border-right:1px solid var(--rule);min-height:100vh}
+.lb{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.hi{color:var(--ph)}.dim{color:var(--dim)}.err{color:var(--cut)}.won{color:var(--fill)}
+.topbar{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--rule);
+ padding:6px 12px;position:sticky;top:0;background:var(--void);z-index:5}
+.head{font-size:20px;font-weight:700;letter-spacing:.08em}
+.hero{padding:18px 12px 16px;border-bottom:1px solid var(--rule);background:var(--panel)}
+#clock{font-size:clamp(56px,13vw,132px);line-height:1;font-weight:500;text-shadow:0 0 14px rgba(255,176,0,.35);transition:color .12s linear}
+#clock.cut{color:var(--cut);text-shadow:0 0 26px rgba(255,45,31,.7);animation:pulse 1s steps(2,end) infinite}
+#clock.win{color:var(--fill);text-shadow:0 0 26px rgba(232,220,200,.5);animation:pulse 1s steps(2,end) infinite}
+#clock.idle{color:var(--dim);text-shadow:none}
+@keyframes pulse{50%{opacity:.55}}
+.prize{margin-top:10px;max-width:62ch}
+button{background:none;border:1px solid var(--ph);color:var(--ph);font:inherit;font-size:13px;letter-spacing:.08em;
+ text-transform:uppercase;padding:6px 22px;cursor:pointer;transition:background .12s linear,color .12s linear}
+button:hover:not(:disabled){background:var(--ph);color:var(--void)}
+button:disabled{border-color:var(--ghost);color:var(--ghost);cursor:default}
+.secthead{display:flex;justify-content:space-between;padding:8px 12px 0}
+.rows{border-top:1px solid var(--rule);margin-top:6px}
+.row{display:grid;grid-template-columns:44px 1fr 110px 110px 76px;height:26px;align-items:center;position:relative;padding:0 12px;transition:color .8s linear}
+.row .bar{position:absolute;left:0;top:0;bottom:0;background:rgba(255,176,0,.12)}
+.row .cell{position:relative;z-index:1;white-space:nowrap;overflow:hidden}
+.row .num{text-align:right}
+.row.outrow{color:var(--ghost)}
+.row.holding{color:var(--ph)}
+.row.flash{color:var(--fill);transition:none}
+.rules{border-top:1px solid var(--rule);padding:14px 12px 18px}
+.rules p{margin:8px 0;line-height:20px;max-width:62ch}
+.rules .strong{color:var(--ph)}
+.foot{margin-top:14px;color:var(--ghost)}
+@media (prefers-reduced-motion:reduce){#clock,#clock.cut,#clock.win{text-shadow:none;animation:none}.row{transition:none}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="head">ASK</span>
+  <span class="lb">round <span class="hi" id="round">7</span>&nbsp;&nbsp; pot <span class="hi" id="pot">0.00000</span> &Xi;&nbsp;&nbsp; hands <span class="hi" id="hops">0</span></span>
+</div>
+
+<div class="hero">
+  <div id="clock">60.0</div>
+  <div class="lb" id="clocklb">seconds until the holder takes the pot</div>
+  <div class="prize" id="prize">&nbsp;</div>
+  <div style="margin-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <button id="take">Take it</button>
+    <span class="lb" id="hint"></span>
+  </div>
+</div>
+
+<div class="secthead"><span class="lb">the chain — round <span id="round2">7</span></span><span class="lb" id="hands">0 hands</span></div>
+<div class="rows" id="chain"></div>
+
+<div class="secthead"><span class="lb">took the pot</span><span class="lb">one per round</span></div>
+<div class="rows" id="winners"></div>
+
+<div class="rules">
+  <div class="lb">how it works</div>
+  <p>Each ask costs 10% more than the one before it. When you take it, the holder before you is paid back 105% of what they paid — they leave with a 5% profit, immediately. The other 5% goes into the pot, the clock gains 5 seconds, and you are the one holding.</p>
+  <p class="strong">The clock never goes above 60 seconds, so it drains unless people keep taking. Whoever is holding when it reaches zero takes half the pot. There is no withdraw: your only exits are being taken out at +5%, or holding to zero.</p>
+  <p class="dim">At the end of a round the pot splits 50% to the holder, 10% to the developers, and 40% into the next round — so the next pot never starts empty. The contract has no pause, no upgrade, and no owner powers beyond withdrawing that fee.</p>
+  <div class="lb foot">contract 0x7A3f&hellip;c914 &middot; verified source &middot; immutable &middot; mock data, not connected to chain</div>
+</div>
+
+<script>
+(function(){
+var reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var YOU='0x0a..c1', MAXT=60, BONUS=5, START=0.005;
+var round=7, pot=0.00412, price=START, chain=[], winners=[
+ {r:6,w:'0x44..9e',won:0.0181,hands:19,ago:'4m ago'},
+ {r:5,w:'0xb7..03',won:0.0074,hands:12,ago:'11m ago'}];
+var holder=null,hPaid=0,hSince=0,dl=0,iHold=false;
+function hex(){var s='0123456789abcdef',o='0x';for(var i=0;i<2;i++)o+=s[Math.floor(Math.random()*16)];o+='..';for(i=0;i<2;i++)o+=s[Math.floor(Math.random()*16)];return o;}
+function eth(n){return n.toLocaleString('en-US',{minimumFractionDigits:5,maximumFractionDigits:5});}
+function dur(s){s=Math.floor(s);return s<60?s+'s':Math.floor(s/60)+'m '+(s%60)+'s';}
+function now(){return Date.now()/1000;}
+function left(){return holder?Math.max(0,dl-now()):0;}
+function winTake(){return pot*0.5;}
+function exitVal(){return hPaid*1.05;}
+
+function take(w){
+  var paid=price, prev=holder, prevPaid=hPaid, held=prev?now()-hSince:0;
+  if(prev){
+    var ret=prevPaid*1.05;
+    pot += paid-ret;
+    if(chain[0]){chain[0].ret=ret;chain[0].held=held;}
+    var rem=left(), ext=Math.min(rem+BONUS,MAXT);
+    dl=now()+ext;
+  } else {
+    pot += paid;
+    dl=now()+MAXT;
+  }
+  holder=w;hPaid=paid;hSince=now();iHold=(w===YOU);
+  chain.unshift({hop:chain.length+1,w:w,price:paid,ret:null,held:null,flash:true});
+  setTimeout(function(){chain.forEach(function(t){t.flash=false;});render();},reduced?0:900);
+  price=paid*1.1;
+  render();
+}
+function settle(){
+  var won=winTake();
+  winners.unshift({r:round,w:holder,won:won,hands:chain.length,ago:'just now'});
+  winners=winners.slice(0,6);
+  pot = pot - won - pot*0.1;    // 50% winner, 10% devs, 40% carries
+  round++;price=START;holder=null;hPaid=0;dl=0;chain=[];iHold=false;
+  render();
+}
+function render(){
+  document.getElementById('round').textContent=round;
+  document.getElementById('round2').textContent=round;
+  document.getElementById('pot').textContent=eth(pot);
+  document.getElementById('hops').textContent=chain.length;
+  document.getElementById('hands').textContent=chain.length+(chain.length===1?' hand':' hands');
+  var max=chain.reduce(function(m,t){return Math.max(m,t.price);},0.0001);
+  document.getElementById('chain').innerHTML=chain.length?chain.map(function(t,i){
+    var cur=(i===0&&holder), w=4+(t.price/max)*52;
+    var status = cur ? '<span class="'+(left()<=15?(iHold?'won':'err'):'hi')+'">holding</span>'
+                     : (t.hop===1&&!t.ret ? '<span class="dim">opened</span>' : '<span class="won">out +5%</span>');
+    return '<div class="row '+(cur?'holding':'outrow')+(t.flash?' flash':'')+'">'+
+      '<div class="bar" style="width:'+w+'%"></div>'+
+      '<span class="cell dim">#'+t.hop+'</span>'+
+      '<span class="cell">'+t.w+(t.w===YOU?' ← YOU':'')+'</span>'+
+      '<span class="cell num">'+eth(t.price)+' Ξ</span>'+
+      '<span class="cell num">'+status+'</span>'+
+      '<span class="cell num dim">'+(cur?dur(now()-hSince):dur(t.held||0))+'</span></div>';
+  }).join(''):'<div class="row"><span class="cell lb">nobody has taken it yet.</span></div>';
+  document.getElementById('winners').innerHTML=winners.map(function(v){
+    return '<div class="row outrow"><span class="cell dim">r'+v.r+'</span>'+
+      '<span class="cell">'+v.w+'</span>'+
+      '<span class="cell num won">+'+eth(v.won)+' Ξ</span>'+
+      '<span class="cell num dim">'+v.hands+' hands</span>'+
+      '<span class="cell num dim">'+v.ago+'</span></div>';}).join('');
+  var btn=document.getElementById('take');
+  btn.textContent = holder ? (iHold?'You hold it':'Take it — '+eth(price)+' Ξ') : 'Take it — '+eth(START)+' Ξ';
+  btn.disabled = iHold;
+  document.getElementById('hint').innerHTML=(holder&&!iHold)?'+'+BONUS+'s on the clock · '+holder+' is paid out at +5%':'';
+  document.getElementById('prize').innerHTML = holder
+    ? (iHold ? 'You are holding. Hit zero and you take <span class="won">'+eth(winTake())+' Ξ</span>. Get taken out and you leave with '+eth(exitVal())+' Ξ — a 5% profit.'
+             : holder+' has held for '+dur(now()-hSince)+' and takes <span class="hi">'+eth(winTake())+' Ξ</span> if nobody stops them.')
+    : 'the pot carries over. take it and start the next round.';
+}
+setInterval(function(){
+  var c=document.getElementById('clock'), lb=document.getElementById('clocklb');
+  if(!holder){c.textContent='OPEN';c.className='idle';lb.textContent='no one is holding. the opening ask costs '+eth(START)+' Ξ.';return;}
+  var l=left();
+  c.textContent=l.toFixed(1);
+  c.className = l<=15 ? (iHold?'win':'cut') : '';
+  lb.textContent = iHold?'seconds until the pot is yours':'seconds until the holder takes the pot';
+  if(l<=0) settle();
+},100);
+setInterval(function(){if(holder)render();},1000);
+document.getElementById('take').addEventListener('click',function(){take(YOU);});
+
+take(hex());
+setInterval(function(){
+  if(!holder){take(hex());return;}
+  var l=left();
+  if(Math.random() < (l<12?0.5:0.14)) take(hex());
+},2400);
+})();
+</script>
+</body>
+</html>

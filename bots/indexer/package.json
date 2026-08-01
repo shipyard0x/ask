@@ -1,0 +1,12 @@
+{
+  "name": "ask-indexer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "tsx": "^4.19.0",
+    "viem": "^2.21.0"
+  }
+}

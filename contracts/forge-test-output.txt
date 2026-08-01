@@ -1,0 +1,141 @@
+No files changed, compilation skipped
+
+Ran 24 tests for test/Ask.t.sol:AskTest
+[PASS] testFuzz_TakesAndSettlements(uint256) (runs: 32, μ: 2316874, ~: 2311500)
+[PASS] test_ClockCapsAtSixtySeconds() (gas: 204176)
+[PASS] test_ClockDrainsWhenNobodyTakes() (gas: 151707)
+[PASS] test_FlippedHolderGetsExactly105Percent() (gas: 156367)
+[PASS] test_GriefingHolderCannotStallTheGame() (gas: 429403)
+[PASS] test_GriefingWinnerGetsPendingCredit() (gas: 366397)
+[PASS] test_HolderAtZeroTakesHalfThePot() (gas: 166248)
+[PASS] test_HolderExitValueMatchesWhatTheyGet() (gas: 148018)
+[PASS] test_InitialState() (gas: 19638)
+[PASS] test_LongChainThenSomebodyWins() (gas: 863452)
+[PASS] test_OpenerCanWinAlone() (gas: 135298)
+[PASS] test_OpenerGetsFullClockAndSeedsPot() (gas: 133634)
+[PASS] test_PotCompoundsAcrossRounds() (gas: 216534)
+[PASS] test_PotGrowsFivePercentEachHand() (gas: 179618)
+[PASS] test_PriceLadder() (gas: 148542)
+[PASS] test_RevertWhen_EndRoundWhileLive() (gas: 126653)
+[PASS] test_RevertWhen_EndRoundWithNoRound() (gas: 15652)
+[PASS] test_RevertWhen_TakingFromYourself() (gas: 133039)
+[PASS] test_RevertWhen_WrongPrice() (gas: 29868)
+[PASS] test_RevertWhen_WrongRound() (gas: 27739)
+[PASS] test_StateView() (gas: 130053)
+[PASS] test_TakeAddsFiveSecondsNotAFullReset() (gas: 149561)
+[PASS] test_TakeAfterExpirySettlesAndOpensNextRound() (gas: 240027)
+[PASS] test_WithdrawDevFeesOwnerOnly() (gas: 172607)
+Suite result: ok. 24 passed; 0 failed; 0 skipped; finished in 141.82ms (140.67ms CPU time)
+
+Ran 31 tests for test/legacy/OrderBook.t.sol:OrderBookTest
+[PASS] testFuzz_DistanceToFillMatchesReference(uint256) (runs: 32, μ: 2104589, ~: 2107833)
+[PASS] testFuzz_FillOrderStrict(uint256) (runs: 32, μ: 2817504, ~: 2979270)
+[PASS] test_BookSliceAndHighestAsk() (gas: 912791)
+[PASS] test_BoundaryAsksAccepted() (gas: 690976)
+[PASS] test_CancelAlwaysReverts() (gas: 9368)
+[PASS] test_DistanceToFillExact() (gas: 871233)
+[PASS] test_FifoWithinLevel() (gas: 800835)
+[PASS] test_FirstDepositGoesToCarry() (gas: 482315)
+[PASS] test_GasDepositAtMaxFills() (gas: 5781551)
+[PASS] test_GriefingReceiverCannotBrickBook() (gas: 1411500)
+[PASS] test_JackpotPaidOnBookClear() (gas: 692351)
+[PASS] test_MaxFillsPerTxRespected() (gas: 5866865)
+[PASS] test_NoJackpotWhenBookNotEmpty() (gas: 946955)
+[PASS] test_PartialFillKeepsHeadPriority() (gas: 801724)
+[PASS] test_PlainSendReverts() (gas: 16953)
+[PASS] test_PositionsOf() (gas: 666951)
+[PASS] test_RepriceMovesLevelAndLosesPriority() (gas: 755124)
+[PASS] test_RepriceToExactlyPaidClearsPosition() (gas: 616844)
+[PASS] test_RepriceUpdatesBitmap() (gas: 539316)
+[PASS] test_RevertWhen_AskAboveCeiling() (gas: 23444)
+[PASS] test_RevertWhen_AskBelowFloor() (gas: 23427)
+[PASS] test_RevertWhen_AskMisaligned() (gas: 23685)
+[PASS] test_RevertWhen_DepositBelowMin() (gas: 23418)
+[PASS] test_RevertWhen_RepriceBelowRealizedPayout() (gas: 623058)
+[PASS] test_RevertWhen_RepriceDuringCooldown() (gas: 471946)
+[PASS] test_RevertWhen_RepriceFilledPosition() (gas: 691994)
+[PASS] test_RevertWhen_RepriceNotOwner() (gas: 473913)
+[PASS] test_RevertWhen_WithdrawFeesNotOwner() (gas: 13242)
+[PASS] test_SecondDepositFillsFirst() (gas: 695518)
+[PASS] test_SelfFillImpossible() (gas: 481594)
+[PASS] test_WithdrawProtocolFees() (gas: 495368)
+Suite result: ok. 31 passed; 0 failed; 0 skipped; finished in 297.98ms (296.80ms CPU time)
+
+Ran 1 test for test/legacy/EconSim.t.sol:EconSimTest
+[PASS] test_EconomicSimulation() (gas: 448981823)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 508.08ms (507.64ms CPU time)
+
+Ran 5 tests for test/legacy/OrderBookInvariant.t.sol:OrderBookInvariantTest
+[PASS] invariant_AggregatesMatch() (runs: 48, calls: 1152, reverts: 0)
+
+╭----------+----------+-------+---------+----------╮
+| Contract | Selector | Calls | Reverts | Discards |
++==================================================+
+| Handler  | claim    | 268   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | deposit  | 290   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | reprice  | 293   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | warp     | 301   | 0       | 0        |
+╰----------+----------+-------+---------+----------╯
+
+[PASS] invariant_BalanceIdentity() (runs: 48, calls: 1152, reverts: 0)
+
+╭----------+----------+-------+---------+----------╮
+| Contract | Selector | Calls | Reverts | Discards |
++==================================================+
+| Handler  | claim    | 268   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | deposit  | 290   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | reprice  | 293   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | warp     | 301   | 0       | 0        |
+╰----------+----------+-------+---------+----------╯
+
+[PASS] invariant_BitmapTruth() (runs: 48, calls: 1152, reverts: 0)
+
+╭----------+----------+-------+---------+----------╮
+| Contract | Selector | Calls | Reverts | Discards |
++==================================================+
+| Handler  | claim    | 268   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | deposit  | 290   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | reprice  | 293   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | warp     | 301   | 0       | 0        |
+╰----------+----------+-------+---------+----------╯
+
+[PASS] invariant_NoOverpay() (runs: 48, calls: 1152, reverts: 0)
+
+╭----------+----------+-------+---------+----------╮
+| Contract | Selector | Calls | Reverts | Discards |
++==================================================+
+| Handler  | claim    | 268   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | deposit  | 290   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | reprice  | 293   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | warp     | 301   | 0       | 0        |
+╰----------+----------+-------+---------+----------╯
+
+[PASS] invariant_QueueBounds() (runs: 48, calls: 1152, reverts: 0)
+
+╭----------+----------+-------+---------+----------╮
+| Contract | Selector | Calls | Reverts | Discards |
++==================================================+
+| Handler  | claim    | 268   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | deposit  | 290   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | reprice  | 293   | 0       | 0        |
+|----------+----------+-------+---------+----------|
+| Handler  | warp     | 301   | 0       | 0        |
+╰----------+----------+-------+---------+----------╯
+
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 2.43s (3.98s CPU time)
+
+Ran 4 test suites in 2.75s (3.38s CPU time): 61 tests passed, 0 failed, 0 skipped (61 total tests)
