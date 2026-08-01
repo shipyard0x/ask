@@ -1,0 +1,5 @@
+.vercel
+.env*
+# ...but the template belongs in the repo — it is the only record of which
+# variables the app needs, and it holds nothing but zero-addresses.
+!.env.example
