@@ -6,7 +6,7 @@ Rounds. The opening ask costs 0.005 ETH. Every ask after that costs 10% more. Wh
 
 Whoever is holding when the clock hits zero takes **50% of the pot**. 10% goes to the devs, 40% seeds the next round.
 
-Everyone taken out makes a small certain 5%. The one still holding at zero takes the pile. That's the trade.
+Everyone taken out makes a small certain 5%. The one still holding at zero takes the pile. **Read "The last holder pays" below before you assume that pile is worth having** — measured against the current constants, it is not.
 
 ## The game — `contracts/src/Ask.sol`
 
@@ -24,7 +24,18 @@ Everyone taken out makes a small certain 5%. The one still holding at zero takes
 
 Payouts push with 30k gas and fall back to `pendingWithdrawals` + `claimPending()`, so no contract can stall the game — including a contract that wins.
 
-No proxy, no pause, no parameter setters. The only privileged action is `withdrawDevFees`.
+No proxy, no pause, no parameter setters. There is no `receive()` either: the contract rejects plain ETH, so the pot cannot be seeded from outside. The only privileged action is `withdrawDevFees`.
+
+## Live deployment
+
+| | |
+|---|---|
+| Network | Arbitrum Sepolia (chain id `421614`) — **testnet** |
+| Contract | [`0x5adc4553364D098Cfff4754E2b2Af5d931f8fEc2`](https://sepolia.arbiscan.io/address/0x5adc4553364D098Cfff4754E2b2Af5d931f8fEc2) |
+| Source | Verified on Sourcify, `exact_match` |
+| Frontend | https://ask-blue.vercel.app |
+
+Robinhood Chain is the intended target and has not been deployed to yet. Arbitrum Sepolia is a rehearsal.
 
 ## Layout
 
@@ -34,8 +45,8 @@ No proxy, no pause, no parameter setters. The only privileged action is `withdra
   src/legacy/            the original order-book version of ASK — not deployed
   test/Ask.t.sol         24 tests
   test/legacy/           37 tests for the order book, still green
-  script/Deploy.s.sol    Robinhood Chain deploy
-  lib/                   vendored forge-std + 3 OpenZeppelin files (builds offline)
+  script/Deploy.s.sol    deploy script
+  lib/                   vendored forge-std + 4 OpenZeppelin files (builds offline)
 /bots/indexer            TypeScript + viem + node:sqlite. Event mirror, REST + SSE.
 /web                     Next.js 14 app router, wagmi v2, PHOSPHOR theme. One page.
 /ui-mock/index.html      standalone playable mock, no toolchain, no wallet
@@ -45,8 +56,9 @@ HANDOFF.md               what to run and what's left
 ## Running the stack locally
 
 ```sh
-# 1 — chain
-anvil
+# 1 — chain. --block-time matters: with on-demand mining the chain clock
+#     freezes between transactions and the UI clock has nothing to track.
+anvil --block-time 1
 
 # 2 — deploy
 cd contracts
@@ -75,26 +87,49 @@ require('fs').writeFileSync('./bots/indexer/src/abi.ts','export const askAbi = '
 
 | Piece | Status |
 |---|---|
-| `forge test` | **Run. 61/61 pass** — 24 for the game (incl. a 50-op fuzz), 37 for the legacy order book. Output in `contracts/forge-test-output.txt`. |
-| Economics | **Verified in tests to the wei**: flipped holders receive exactly 105% of their cost; the pot grows by exactly 5% of each price; the round-end split is exactly 50/10/40; `winnerTake()` and `holderExitValue()` quote the real payouts. |
-| Clock | **Verified**: a take adds 5s rather than resetting, the clock hard-caps at 60s under rapid-fire takes, and it genuinely drains to zero when takes slow down. |
-| Balance identity | **Asserted after every operation** in every test and throughout the fuzz: `address(this).balance == pot + devFees + totalPending`. |
-| Indexer | **Run end-to-end** against anvil: a 4-hand chain with takes 8s apart, then the clock ran out. Clock drained 60 → 57 → 53 → 50, price ladder 0.005 → 0.0055 → 0.00605 → 0.006655, each flip paid exactly 105%, pot grew by exactly 5% each hand, the winner's balance delta matched `winnerTake()` to the wei, and the 50/10/40 split landed correctly in `/rounds`. |
-| Web `next build` | **Not run.** The build environment could not finish `npm install` for the Next + wagmi tree inside its per-command time limit. The web sources pass an esbuild parse check but have **not** been type-checked against real wagmi/viem types or rendered in a browser. |
-| Deploy | **Not run.** No funded key. Script and verify commands are ready. |
-| Audit | **Not done.** |
+| `forge test` | **Run. 61/61 pass** — 24 for the game (incl. a 50-op fuzz), 37 for the legacy order book. |
+| Economics | **Verified in tests to the wei**, and again against the live testnet deployment: 32/32 checks re-deriving every payout from first principles. |
+| Clock | **Verified on a real chain** from `Taken` event deadlines: opener gets 60s, every later take adds exactly 5s. A take landing with 2s left produced 7s, not 60. |
+| Balance identity | **Asserted after every operation** in tests, and confirmed live: `address(this).balance == pot + devFees + totalPending`, with `totalPending == 0` (no payout ever needed the pull fallback). |
+| Indexer | **Run end-to-end** against anvil and against Arbitrum Sepolia. |
+| Web `next build` | **Run, passes.** Type-checked against real wagmi v2 / viem types. |
+| Web in a browser | **Played by a human** on Arbitrum Sepolia: connect, take, flip, expiry, settle, payout. |
+| Deploy | **Run on Arbitrum Sepolia**, source verified. Robinhood Chain not yet. |
+| Audit | **Not done.** Still the blocker before real money. |
 
 `/ui-mock/index.html` is the honest visual reference: open it in any browser, no install, and the whole game loop runs on simulated data.
+
+## The last holder pays
+
+Worth stating plainly, because the summary above reads the other way round.
+
+Each take adds `1 − 1.05/1.1` ≈ **4.5%** of its price to the pot, while the price itself climbs **10%** per hand. The pot therefore converges to roughly **half the last price**, and the winner's 50% share lands near **a quarter of what they paid**.
+
+Measured against the live deployment, round 2: the winner paid 0.006655 and received 0.00391375 — a **loss of 0.00274**. This is not an edge case. It holds for every chain length, and gets worse as the chain grows:
+
+```
+carry-in 0.002        hands   winner paid   winner gets      net
+                          2     0.005500      0.003625    -0.001875
+                          4     0.006655      0.003914    -0.002741
+                          8     0.009744      0.004686    -0.005058
+                         20     0.030580      0.009895    -0.020685
+```
+
+It cannot be tuned away by raising the winner's share. The game is a closed system: total in equals total out, minus the 10% dev fee. If every flipped holder is guaranteed +5%, the last holder is structurally the one funding it.
+
+So the real game is **get flipped, don't be last**, and the "prize" is a partial refund. That may be the game you want — musical chairs is a fine game — but the contract as deployed does not pay the last holder more than they put in. See HANDOFF.md §4 for the options.
 
 ## Design notes
 
 - **The clock adds, it does not reset.** A reset-to-60 clock can be held open forever by one player taking every 59 seconds. Adding 5s with a 60s cap means sustained activity is required to keep a round alive, and a busy round still ends.
 - **The opener gets the full 60s.** Giving the first taker +5s on an empty clock would leave them five seconds to find a taker.
-- **A solo round is a loss.** Open a round and win it alone and you take back 50% of a pot that is just your own opening ask. Someone has to take it from you for the trade to work.
+- **Two humans cannot keep a round alive.** Measured on testnet, each hand held 17–27 seconds while a take only buys 5. Round 2 died in 88 seconds despite four hands. Sustaining a round needs genuine concurrency — or a bot.
 - **Colour is rationed and directional.** `--cut` red fires only when the pot is about to go to somebody else; `--fill` bone white only when money is coming to you. Anything coloured on screen is about your position.
 - **Everyone paid out fades to ghost.** In the chain list, ghost means safe and done at +5%; the single amber row is the live holder — the only one who can still win or lose.
 
 ## Known trade-offs
 
-- **Bots have an edge at 60 seconds.** A script watching the mempool can take at the last moment, every time. Whether that's a feature (it is a latency game) or a problem is a product decision — see HANDOFF.md §4.
+- **The last holder pays.** See above. The single most important open design question.
+- **Bots have an edge at 60 seconds.** A script watching the mempool can take at the last moment, every time. Given two humans provably cannot sustain a round, a bot that can is a structural advantage, not just a fast finger. See HANDOFF.md §4.
+- **Wallets underprice gas on L2s.** Arbitrum's base fee drifts and wallet estimates lag it, producing `max fee per gas less than block base fee`. In a game decided by whether your transaction lands inside 60 seconds this is a correctness problem, not a cost one. The frontend now sets its own fees; the contract cannot help here.
 - **The reorg path is untested.** The indexer tracks block hashes and rolls back on mismatch, but no real reorg was ever forced against it.
