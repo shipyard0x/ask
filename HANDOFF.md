@@ -107,6 +107,34 @@ forge verify-contract <address> src/Ask.sol:Ask --chain-id <id> --verifier sourc
 
 ---
 
+## 3a. Hosting the indexer
+
+`bots/indexer/Dockerfile` runs on anything that takes a Dockerfile — Railway, Fly, Render, Koyeb, a VPS. No platform config, so nothing to rewrite if you move.
+
+Set these, and **attach a volume at `/data`**:
+
+```
+RPC_URL       the chain's rpc endpoint
+ASK_ADDRESS   the deployed Ask contract
+START_BLOCK   the block the contract was deployed at   <- not optional
+DB_PATH       /data/ask.db                             <- the default; needs the volume
+PORT          injected by most platforms; the app honours it
+```
+
+Without the volume the container rebuilds the entire event history from `START_BLOCK` on every restart and redeploy — hours of catch-up on a real chain, with an empty page the whole time. With it, a restart resumes from the last indexed block in seconds.
+
+Then point the frontend at the public URL:
+
+```
+NEXT_PUBLIC_INDEXER_URL=https://<your-indexer-host>
+```
+
+It must be `https`. The frontend is served over TLS, so a plain-`http` indexer is blocked as mixed content and the history lists stay silently empty. The app degrades gracefully — nothing breaks, there is simply never any history.
+
+Verified by running the exact contents of the image against Arbitrum Sepolia: serves on an injected `PORT`, sends `access-control-allow-origin: *`, writes to `DB_PATH`, and resumes from the volume rather than re-scanning.
+
+---
+
 ## 4. What's actually left, in priority order
 
 ### P0 — decide before anything else is built on top
