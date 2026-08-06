@@ -24,9 +24,13 @@ const ASK_ADDRESS = (process.env.ASK_ADDRESS ?? "") as `0x${string}`;
 const START_BLOCK = BigInt(process.env.START_BLOCK ?? "0");
 const PORT = Number(process.env.PORT ?? 8747);
 const DB_PATH = process.env.DB_PATH ?? "./ask.db";
-const POLL_MS = 1000; // the clock is 60s; stay tight
+const POLL_MS = Number(process.env.POLL_MS ?? 1000); // the clock is 60s; stay tight
 const SNAPSHOT_MS = 15_000;
-const MAX_RANGE = 500n;
+// Blocks per eth_getLogs call. Providers cap this and the cap is plan-dependent
+// — Alchemy's free tier allows 10, which is why this is configurable rather
+// than a constant. Ingest rate is MAX_RANGE per POLL_MS: keep it comfortably
+// above the chain's block rate or the indexer falls behind and never recovers.
+const MAX_RANGE = BigInt(process.env.MAX_RANGE ?? 500);
 const REORG_KEEP = 256;
 
 if (!ASK_ADDRESS) {
